@@ -18,6 +18,9 @@ app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 
 //Cargar configuraicon de rutas
+const userRoutes = require("./Routes/user");
+
+app.use("/api/user", userRoutes);
 
 //Ruta de pruebas
 app.get("/pruebitas", (req, res) => {
