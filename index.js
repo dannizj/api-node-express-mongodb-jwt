@@ -19,8 +19,10 @@ app.use(express.urlencoded({extended: true}));
 
 //Cargar configuraicon de rutas
 const userRoutes = require("./Routes/user");
+const articleRoutes = require("./Routes/article");
 
 app.use("/api/user", userRoutes);
+app.use("/api/article", articleRoutes);
 
 //Ruta de pruebas
 app.get("/pruebitas", (req, res) => {
