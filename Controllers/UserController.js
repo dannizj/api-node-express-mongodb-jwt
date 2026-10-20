@@ -1,6 +1,7 @@
 // Importaciones
 const bcrypt = require("bcryptjs");
 const validate = require("../Helpers/validate-user");
+const jwt = require("../Helpers/jwt");
 const User = require("../Models/user");
 
 // Acciones
@@ -30,7 +31,7 @@ const register = (req, res) => {
         if(users && users.length >= 1){
             return res.status(400).json({
                 status: "error",
-                message: "El usuario ya exsiste !!!"
+                message: "El usuario ya existe !!!"
             });
         }
    
@@ -89,17 +90,90 @@ const register = (req, res) => {
 }
 
 const login = (req, res) => {
-    return res.status(200).json({
-        status: 200,
-        message: "Accion para identificar al usuario"
-    });
+    //Recoger los datos del body
+    let body = req.body;
+
+    //Comprobar que llegan bien
+    if(!body.email || !body.password){        
+        return res.status(400).json({
+                status: "error",
+                message: "Faltan datos por enviar"
+            });
+    }
+
+
+    //Comprobar que el usuario existe
+    User.findOne({
+        email: body.email.toLowerCase()
+    }).then( user => {
+        //Comprobar el password
+        let pwd = bcrypt.compareSync(body.password, user.password);
+
+        if(!pwd){
+            return res.status(400).json({
+                status: "error",
+                message: "La password es incorrecto"
+            });
+        }
+
+        //Crear el token jwt
+        let token = jwt.createToken(user);
+
+        //Devuelver el resultado
+        return res.status(200).json({
+            status: "success",
+            user: {
+                _id: user.id,
+                name: user.name,
+                nick: user.nick
+            },
+            token
+        });
+
+    }).catch( error => {
+        console.log(error);
+        return res.status(500).json({
+                status: "error",
+                message: "Error al buscar al usuario"
+            });
+    })
+
+       
 }
 
 const profile = (req, res) => {
-    return res.status(200).json({
-        status: 200,
-        message: "Accion para ver los datos de un usuario"
-    });
+
+    let id = req.params.id;
+
+    User.findById(id)
+        .select({
+            "password": 0,
+            "created_at": 0
+        })
+        .then(userFinded => {
+
+            if(!userFinded){
+                 return res.status(404).json({
+                    status: "error",
+                    message: "El usuario no existe",
+                    id
+                });
+            }
+
+
+            return res.status(200).json({
+                status: "success",
+                user: userFinded
+            });
+        }).catch(error => {
+            return res.status(404).json({
+                status: "error",
+                message: "Error al buscar al usuario"
+            });
+        })
+
+
+    
 }
 
 const update = (req, res) => {
@@ -123,6 +197,17 @@ const avatar = (req, res) => {
     });
 }
 
+const soloParaUsuariosIdentificados = (req, res) => {
+
+    return res.status(200).json({
+        status: "success",
+        message: "Tienes acceso a esta seccion, token validado!!!",
+        datosDelUsuario: req.user
+    });
+
+}
+
+
 //Exportaciones
 module.exports = {
     register,
@@ -130,5 +215,6 @@ module.exports = {
     profile,
     update,
     upload,
-    avatar
+    avatar,
+    soloParaUsuariosIdentificados
 }
