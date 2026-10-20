@@ -11,7 +11,7 @@ const {auth} = require("../Middlewares/auth");
 router.post("/register", UserController.register);
 router.post("/login", UserController.login);
 router.get("/profile/:id", UserController.profile);
-router.put("/update", UserController.update);
+router.put("/update", auth, UserController.update);
 router.put("/upload/:id", UserController.upload);
 router.get("/avatar/:file", UserController.avatar);
 router.get("/solo-para-identificados", auth, UserController.soloParaUsuariosIdentificados);

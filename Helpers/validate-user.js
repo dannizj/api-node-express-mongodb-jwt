@@ -1,6 +1,6 @@
 const validator = require("validator");
 
-const validate = (params) => {
+const validate = (params, withPassword = true) => {
     let validation = false;
 
     let name = !validator.isEmpty(params.name) &&
@@ -9,7 +9,7 @@ const validate = (params) => {
 
     let surname = !validator.isEmpty(params.surname) &&
                 validator.isLength(params.surname, { min:2, max: 80}) &&
-                validator.isAlpha(params.surname, "es-ES");
+                validator.isAlpha(params.surname.replace(/\s/g, ""), "es-ES");
     
     let nick = !validator.isEmpty(params.nick) &&
                 validator.isLength(params.nick, { min:2, max: 60});
@@ -17,8 +17,13 @@ const validate = (params) => {
     let email = !validator.isEmpty(params.email) &&
                 validator.isEmail(params.email);
     
-    let password = !validator.isEmpty(params.password) &&
+    let password = true;
+    if(withPassword){
+        let password = !validator.isEmpty(params.password) &&
                     validator.isLength(params.password, { min:6, max: 100});
+    }
+
+    
                 
     if(!name || !surname || !nick || !email || !password){
         throw new Error("No se ha superado la validacion!!");

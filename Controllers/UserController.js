@@ -176,11 +176,67 @@ const profile = (req, res) => {
     
 }
 
-const update = (req, res) => {
-    return res.status(200).json({
-        status: 200,
-        message: "Accion para editar y actualizar la informacion de un usuario"
-    });
+const update = async (req, res) => {
+
+    try {
+        // Conseguir identidad del usuario
+        const userIdentity = req.user;
+
+        // Crear objeto con datos nuevos
+        let userToUpdate = {
+            name: req.body.name ?? userIdentity.name,
+            surname: req.body.surname ?? userIdentity.surname,
+            nick: req.body.nick.toLowerCase() ?? userIdentity.nick,
+            email: req.body.email.toLowerCase() ?? userIdentity.email,
+            bio: req.body.bio ?? userIdentity.bio
+        }
+
+        // Validar los datos
+        validate(userToUpdate, false);
+
+        // Buscar si el usuario ya existe en la bd
+        const users = await User.find({
+            $or: [
+                { email: userToUpdate.email.toLowerCase()},
+                { nick: userToUpdate.nick.toLowerCase()}
+            ]
+        });        
+
+        // Recorrer y comprobar los usuarios
+        const userExist = users.some(user => user._id.toString() != userIdentity.id);
+
+        if(userExist){
+            return res.status(400).json({
+                status: "error",
+                message: "El email o el nick name ya estan en uso"
+            });
+        }
+        
+        // Actualizar el usuario en la base de datos
+        const userUpdated = await User.findByIdAndUpdate(userIdentity.id, userToUpdate, { new: true, select: "-password"});
+
+        if(!userUpdated){
+             return res.status(404).json({
+                status: "error",
+                message: "No se puede actualizar el usuario"
+            });
+        }
+
+        return res.status(200).json({
+            status: "success",
+            user: userUpdated
+        });
+        
+    } catch (error) {
+        console.log(error);
+
+        return res.status(500).json({
+            status: "error",
+            message: "Error al actualizar usuario"
+        });
+    }
+
+    
 }
 
 const upload = (req, res) => {
