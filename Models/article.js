@@ -1,5 +1,6 @@
 //Importaciones de mongoose
 const { Schema, model } = require("mongoose");
+const MongoosePaginate = require("mongoose-paginate-v2");
 
 //Definicion del schema
 const ArticleSchema = Schema({
@@ -14,5 +15,6 @@ const ArticleSchema = Schema({
 });
 
 //Exportar modelo
+ArticleSchema.plugin(MongoosePaginate);
 module.exports = model('Article', ArticleSchema, "articles");
 
