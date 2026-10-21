@@ -1,8 +1,10 @@
 // Importaciones
+const path = require("path");
 const bcrypt = require("bcryptjs");
 const validate = require("../Helpers/validate-user");
 const jwt = require("../Helpers/jwt");
 const User = require("../Models/user");
+const fs = require("fs");
 
 // Acciones
 const register = (req, res) => {
@@ -239,18 +241,79 @@ const update = async (req, res) => {
     
 }
 
-const upload = (req, res) => {
-    return res.status(200).json({
-        status: 200,
-        message: "Accion para subir avatar o imagen del usuario"
-    });
+const upload = async (req, res) => {
+    // Recoger id de usuario
+    const id = req.user.id;
+
+    // Recoger el fichero y comprobar que existe
+    if(!req.file){
+        return res.status(400).json({
+            status: "error",
+            message: "La peticion no incluye la imagen de avatar"
+        });
+    }
+
+    try {
+        // Nombre del archivo
+        const { originalname, filename, path: filePath } = req.file;
+
+        // Sacar extension del archivo
+        const ext = path.extname(originalname).toLowerCase();
+        const validExtensions = [".png", ".jpg", ".jpeg", ".gif"];
+
+        // Si no es correcta la extension borrar el archivo
+        if(!validExtensions.includes(ext)){
+            fs.unlinkSync(filePath);
+            
+            return res.status(400).json({
+                status: "error",
+                message: "Extension del avatar invalida"
+            });
+        }
+
+        // Buscar y actualizar el usuario en la bd
+        const userUpdated = await User.findByIdAndUpdate(id, {avatar: filename}, {new: true});
+
+        if(!userUpdated){
+            return res.status(404).json({
+                status: "error",
+                message: "El usuario no existe"
+            });
+
+        }
+
+
+        return res.status(200).json({
+            status: "success",
+            user: userUpdated
+        });
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al actualizar el usuario",
+            error: error.message
+        });
+    }
+
+    
 }
 
 const avatar = (req, res) => {
-    return res.status(200).json({
-        status: 200,
-        message: "Accion para sacar el avatar del usuario"
+    let file = req.params.file;
+    let filePath = "./Uploads/Avatars/" + file;
+
+    fs.stat(filePath, (error, exist) => {
+        if(!error && exist){
+            return res.sendFile(path.resolve(filePath));
+
+        }else{
+            return res.status(404).json({
+            status: "error",
+            message: "La imagen no existe"
+            });
+        }
     });
+   
 }
 
 const soloParaUsuariosIdentificados = (req, res) => {
