@@ -26,9 +26,9 @@ router.get("/detail/:id", ArticleController.detail);
 router.post("/generate-ia", auth, ArticleController.generate);
 router.put("/update", auth, ArticleController.update);
 router.delete("/remove/:id", auth, ArticleController.remove);
-router.get("/by-user/:userId", ArticleController.byUser);
+router.get("/by-user/:userId/:page", ArticleController.byUser);
 router.get("/search/:search", ArticleController.search);
-router.put("/upload/:id", auth, ArticleController.upload);
+router.put("/upload/:id", [auth, uploadsPoster.single("file0")], ArticleController.upload);
 router.get("/poster/:file", ArticleController.poster);
 
 //Exportar las rutas

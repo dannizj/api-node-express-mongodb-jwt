@@ -1,4 +1,6 @@
 // Importaciones
+const path = require("path");
+const fs = require("fs");
 const validate = require("../Helpers/validate-article");
 const Article = require("../Models/article");
 
@@ -227,30 +229,179 @@ const remove = async (req, res) => {
 }
 
 const byUser = (req, res) => {
-    return res.status(200).json({
-        status: 200,
-        message: "Accion para sacar articulos creados por un usuario"
-    });
+     // Sacar parametros
+    let params = req.params;
+
+    // Controlar la paginacion en la que estamos
+    let page = 1;
+
+    if(params.page){
+        page = params.page;
+    }
+
+    // Configurar paginacion
+    let itemsPerPage = 10;
+
+    const options = {
+        page,
+        limit: itemsPerPage,
+        sort: {created_at: -1},
+        populate: {
+            path: "user",
+            select: "-password -__v -created_at -email"
+        }
+    }
+
+    // Consultar y listar los articulos (mongoose paginate)
+    Article.paginate({user: req.params.userId}, options)
+            .then( result => {
+
+                if(!result.docs){
+                    return res.status(404).json({
+                        status: "error",
+                        message: "No hay articulos para mostrar"
+                    });
+                }
+
+                // Devolver un resultado
+                return res.status(200).json({
+                    status: "success",
+                    page,
+                    itemsPerPage,
+                    total: result.totalDocs,
+                    articles: result.docs,
+                    pages: Math.ceil(result.totalDocs / itemsPerPage)
+                });
+
+            }).catch(error => {
+                return res.status(500).json({
+                    status: "error",
+                    message: "Error al listar ",
+                    error
+                });
+            })
 }
 
 const search = (req, res) => {
-    return res.status(200).json({
-        status: 200,
-        message: "Accion para buscar un articulo"
-    });
+
+    let searchString = req.params.search;
+
+    Article.find({
+        "$or": [
+            { "title": { "$regex": searchString, "$options": "i"}},
+            { "content": { "$regex": searchString, "$options": "i"}}
+        ]
+    })
+    .sort({ created_at: -1})
+    .then(articles => {
+
+        if(!articles){
+            return res.status(404).json({
+                status: "error",
+                message: "No hay articulos que coincidan con tu busqueda"
+            });
+        }
+
+        return res.status(200).json({
+            status: "success",
+            articles
+        });
+    })
+    
 }
 
-const upload = (req, res) => {
-    return res.status(200).json({
-        status: 200,
-        message: "Accion para subir imagen del articulo"
-    });
+const upload = async (req, res) => {
+    // Recoger id de usuario
+    const userId = req.user.id;
+    const articleId = req.params.id;
+
+    // Recoger el fichero y comprobar que existe
+    if(!req.file){
+        return res.status(400).json({
+            status: "error",
+            message: "La peticion no incluye la imagen del articulo"
+        });
+    }
+
+    try {
+        // Nombre del archivo
+        const { originalname, filename, path: filePath } = req.file;
+
+        // Sacar extension del archivo
+        const ext = path.extname(originalname).toLowerCase();
+        const validExtensions = [".png", ".jpg", ".jpeg", ".gif"];
+
+        // Si no es correcta la extension borrar el archivo
+        if(!validExtensions.includes(ext)){
+            fs.unlinkSync(filePath);
+            
+            return res.status(400).json({
+                status: "error",
+                message: "Extension de la imagen del articulo invalida"
+            });
+        }       
+
+        // Comprobar dueño del articulo
+        const article = await Article.findById(articleId);
+         if(!article){
+            fs.unlinkSync(filePath);
+            
+            return res.status(400).json({
+                status: "error",
+                message: "El articulo no existe"
+            });
+        }
+
+         if(article.user.toString() !== userId.toString()){
+            fs.unlinkSync(filePath);
+            
+            return res.status(400).json({
+                status: "error",
+                message: "No tienes los permisos para subir imagenes a este articulo"
+            });
+        }
+
+        // Buscar y actualizar el usuario en la bd
+        const articleUpdated = await Article.findByIdAndUpdate(articleId, {image: filename}, {new: true});
+
+        if(!articleUpdated){
+            return res.status(404).json({
+                status: "error",
+                message: "El articulo no existe"
+            });
+
+        }
+
+
+        return res.status(200).json({
+            status: "success",
+            article: articleUpdated
+        });
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al actualizar el articulo",
+            error: error.message
+        });
+    }
+
+    
 }
 
 const poster = (req, res) => {
-    return res.status(200).json({
-        status: 200,
-        message: "Accion para sacar la imagen del articulo"
+    let file = req.params.file;
+    let filePath = "./Uploads/Posters/" + file;
+
+    fs.stat(filePath, (error, exist) => {
+        if(!error && exist){
+            return res.sendFile(path.resolve(filePath));
+
+        }else{
+            return res.status(404).json({
+            status: "error",
+            message: "La imagen no existe"
+            });
+        }
     });
 }
 
