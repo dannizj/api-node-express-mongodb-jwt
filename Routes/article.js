@@ -23,13 +23,13 @@ const uploadsPoster = multer({storage});
 router.post("/save", auth, ArticleController.save);
 router.get("/list/:page", ArticleController.list );
 router.get("/detail/:id", ArticleController.detail);
-router.post("/generate-ia", ArticleController.generate);
-router.put("/update", ArticleController.update);
-router.delete("/remove/:id", ArticleController.remove);
-router.get("/by-user/:id", ArticleController.byUser);
+router.post("/generate-ia", auth, ArticleController.generate);
+router.put("/update", auth, ArticleController.update);
+router.delete("/remove/:id", auth, ArticleController.remove);
+router.get("/by-user/:userId", ArticleController.byUser);
 router.get("/search/:search", ArticleController.search);
-router.put("/upload/:id", ArticleController.upload);
-router.get("/poster/:id", ArticleController.poster);
+router.put("/upload/:id", auth, ArticleController.upload);
+router.get("/poster/:file", ArticleController.poster);
 
 //Exportar las rutas
 module.exports = router;

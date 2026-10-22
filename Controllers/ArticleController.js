@@ -140,18 +140,90 @@ const detail = (req, res) => {
    
 }
 
-const update = (req, res) => {
-    return res.status(200).json({
-        status: 200,
-        message: "Accion para editar y actualizar la informacion de un articulo"
-    });
+const update = async (req, res) => {
+
+    // Recoger los datos del body
+    let body = req.body;
+
+    // Validar los datos del articulo
+     try {
+        validate(body);
+        
+    } catch (error) {
+        return res.status(400).json({
+            status: "error",
+            message: "Validacion del articulo no superada"
+        });
+    }
+
+    try {
+        // Sacar id de user logeado
+        let userIdentity = req.user.id;         
+
+        const articleUpdate = await Article.findByIdAndUpdate(body.id, body, {new:true});
+
+        if(!articleUpdate){
+            return res.status(404).json({
+                        status: "error",
+                        message: "El articulo no existe"
+                    });
+        }
+
+
+        // Devolver un resultado
+            return res.status(200).json({
+                status: "success",
+                article: articleUpdate
+            });
+        
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al actualizar el articulo"
+        });
+    }    
 }
 
-const remove = (req, res) => {
-    return res.status(200).json({
-        status: 200,
-        message: "Accion para eliminar un articulo"
-    });
+const remove = async (req, res) => {
+     // Recoger los datos del body
+    let id = req.params.id;
+   
+    try {
+         // Sacar id de user logeado
+        let userIdentity = req.user.id;
+
+        const article = await Article.findById(id);
+         if(!article){
+            return res.status(404).json({
+                status: "error",
+                message: "El articulo no existe"
+            });
+        }
+
+        if(article.user.toString() === userIdentity.toString()){
+            const articleDelete = await Article.findByIdAndDelete(id);
+
+            if(!articleDelete){
+                return res.status(404).json({
+                    status: "error",
+                    message: "El articulo no existe"
+                });
+            }
+
+            // Devolver un resultado
+            return res.status(200).json({
+                status: "success",
+                article: articleDelete
+            });
+        }        
+       
+        
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error al elimianar el articulo"
+        });
+    }    
 }
 
 const byUser = (req, res) => {
