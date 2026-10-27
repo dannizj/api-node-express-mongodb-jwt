@@ -1,3 +1,6 @@
+//Cargar variables de entorno (.env)
+require("dotenv").config({ quiet: true });
+
 //Importar dependencias
 const express = require("express");
 const cors = require("cors");

@@ -23,7 +23,7 @@ const uploadsPoster = multer({storage});
 router.post("/save", auth, ArticleController.save);
 router.get("/list/:page", ArticleController.list );
 router.get("/detail/:id", ArticleController.detail);
-router.post("/generate-ia", auth, ArticleController.generate);
+router.post("/generate-ia/:theme", auth, ArticleController.generate);
 router.put("/update", auth, ArticleController.update);
 router.delete("/remove/:id", auth, ArticleController.remove);
 router.get("/by-user/:userId/:page", ArticleController.byUser);

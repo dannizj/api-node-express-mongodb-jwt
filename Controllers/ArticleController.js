@@ -1,6 +1,8 @@
 // Importaciones
 const path = require("path");
 const fs = require("fs");
+const dotenv = require("dotenv");
+const OpenAI = require("openai");
 const validate = require("../Helpers/validate-article");
 const Article = require("../Models/article");
 
@@ -405,11 +407,99 @@ const poster = (req, res) => {
     });
 }
 
-const generate = (req, res) => {
-    return res.status(200).json({
-        status: 200,
-        message: "Accion para generar con IA un articulo"
-    });
+dotenv.config();
+
+const openai = new OpenAI({
+    apiKey: process.env.OPENCODE_API_KEY,
+    baseURL: process.env.OPENCODE_BASE_URL
+})
+
+const generate = async (req, res) => {
+    // Recibir el prompt
+    const { theme } = req.params;
+    console.log(theme);
+
+    // Organizar el promt
+
+        // Prompt de sistemas
+        const promptSystem = `
+            Eres un redactor especializado en ${theme}.
+
+            El usuario te va a pedir que redactes un articulo (titulo y texto para el contenido)
+
+            Solo puedes responder con un articulo adecuado al tema que te pida el usuario,
+            cualquier otra conversacion o respuesta, esta prohibida.
+
+            El formato de salida del articulo debe ser la siguiente (un objeto json):
+
+            {
+                "title": "AQUI EL TITULO",
+                "content": "AQUI EL CONTENIDO"
+            }
+
+            El titulo debe tener maximo 120 caracteres.
+            El contenido debe tener maximo 1000 caracteres.
+        `;
+
+        // Prompt de usuario
+        const promptUser = "Necesito que redactes un articulo de " + theme;
+
+    // Llamar al llm 
+    try {
+        const completion = await openai.chat.completions.create({
+                model: process.env.OPENCODE_MODEL,
+                messages: [
+                    {role: "system", content: promptSystem},
+                    {role: "user", content: promptUser}
+                ],
+                max_tokens: 700,
+                response_format: {type: "json_object"}
+            });
+        // Recoger el resultado
+        const articleObject = JSON.parse(completion.choices[0].message.content);
+
+        // Sacar id de user logeado
+        let identityId = req.user.id;
+        articleObject.user = identityId;
+
+        // Crear objeto para articulo
+        let articleToSave = new Article(articleObject);
+
+        // Guardar objeto en la bd
+        articleToSave.save().then(article => {
+
+            if(!article){
+                return res.status(404).json({
+                    status: "error",
+                    message: "El articulo no se a guardado bien"
+                });
+            }
+            
+            // Devolver resultado
+            return res.status(200).json({
+                status: "success",
+                article
+            });
+
+        })
+        
+    } catch (error) {
+        const status = error?.status || 500;
+
+        if(status === 429){
+            return res.status(429).json({
+                status: "error",
+                message: "Límite de uso de IA alcanzado. Inténtalo más tarde."
+            });
+        }
+
+        return res.status(500).json({
+            status: "error",
+            message: "Error al generar el articulo"
+        });
+    }
+
+    
 }
 
 //Exportaciones
