@@ -316,16 +316,6 @@ const avatar = (req, res) => {
    
 }
 
-const soloParaUsuariosIdentificados = (req, res) => {
-
-    return res.status(200).json({
-        status: "success",
-        message: "Tienes acceso a esta seccion, token validado!!!",
-        datosDelUsuario: req.user
-    });
-
-}
-
 
 //Exportaciones
 module.exports = {
@@ -334,6 +324,5 @@ module.exports = {
     profile,
     update,
     upload,
-    avatar,
-    soloParaUsuariosIdentificados
+    avatar
 }

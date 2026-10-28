@@ -25,10 +25,7 @@ router.get("/profile/:id", UserController.profile);
 router.put("/update", auth, UserController.update);
 router.put("/upload", [auth, uploadsAvatar.single("file0")], UserController.upload);
 router.get("/avatar/:file", UserController.avatar);
-router.get("/solo-para-identificados", auth, UserController.soloParaUsuariosIdentificados);
 
 //Exportar las rutas
 module.exports = router;
-
-//reload
 
